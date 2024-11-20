@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очередь пациента</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .highlight {
+            background-color: #ffef96;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ваша очередь</h1>
+    <div id="queue">
+        <button id="take-queue-btn">Взять очередь</button>
+        <table id="queue-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Номер</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody id="queue-body">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // Получение очереди
+        socket.on("update_queue", (data) => {
+            const queue = data.queue;
+            const current = data.current;
+            const queueBody = document.getElementById("queue-body");
+
+            // Очистить таблицу
+            queueBody.innerHTML = "";
+
+            // Обновить данные очереди
+            queue.forEach((num, index) => {
+                const row = document.createElement("tr");
+                if (num === current) {
+                    row.classList.add("highlight");
+                }
+                row.innerHTML = `
+                    <td>${num}</td>
+                    <td>${index === 0 ? "Принят" : "В ожидании"}</td>
+                `;
+                queueBody.appendChild(row);
+            });
+        });
+
+        // Нажатие на "Взять очередь"
+        document.getElementById("take-queue-btn").addEventListener("click", () => {
+            fetch("/take_queue", { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("take-queue-btn").style.display = "none";
+                    document.getElementById("queue-table").style.display = "table";
+                    alert(`Ваш номер: ${data.number}`);
+                });
+        });
+
+        // Запрос очереди при подключении
+        socket.emit("get_queue");
+    </script>
+</body>
+</html>
